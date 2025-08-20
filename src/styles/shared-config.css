@@ -1,0 +1,291 @@
+/* 共享样式配置 - 确保测试页面和扩展popup完全一致 */
+
+/* 应用容器统一配置 */
+.translator-app-container {
+  /* 确保容器样式一致 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-color);
+  
+  /* 防抖动优化 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 确保扩展popup和测试页面的尺寸完全一致 */
+.extension-popup {
+  /* 固定尺寸确保一致性 */
+  width: 420px !important;
+  min-height: 500px;
+  max-height: 600px;
+  
+  /* 确保字体渲染一致 */
+  font-feature-settings: 'kern' 1;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* 统一的组件间距 */
+.section + .section {
+  margin-top: 0; /* 使用gap而不是margin */
+}
+
+/* 确保按钮样式完全一致 */
+.btn {
+  /* 统一按钮高度 */
+  height: 32px;
+  min-width: 64px;
+  
+  /* 确保文本居中 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* 防止文本选择 */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 确保输入框样式完全一致 */
+.input, .textarea, .select {
+  /* 统一输入框高度 */
+  min-height: 32px;
+  
+  /* 确保字体大小一致，防止移动端缩放 */
+  font-size: 14px !important;
+  
+  /* 统一内边距 */
+  padding: 8px 12px;
+}
+
+/* 确保卡片样式完全一致 */
+.card {
+  /* 统一圆角和阴影 */
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  
+  /* 统一内边距 */
+  padding: 12px;
+}
+
+/* 确保历史记录样式一致 */
+.history-list {
+  /* 统一滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-base) transparent;
+}
+
+.history-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.history-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+  background: var(--border-base);
+  border-radius: 3px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light);
+}
+
+/* 确保加载状态样式一致 */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-base);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* 确保错误状态样式一致 */
+.error {
+  background-color: rgba(245, 108, 108, 0.1);
+  border-color: var(--error-color);
+  color: var(--error-color);
+}
+
+/* 确保成功状态样式一致 */
+.success {
+  background-color: rgba(103, 194, 58, 0.1);
+  border-color: var(--success-color);
+  color: var(--success-color);
+}
+
+/* 确保流式翻译指示器样式一致 */
+.streaming-indicator {
+  background: rgba(64, 158, 255, 0.05);
+  border: 1px solid rgba(64, 158, 255, 0.2);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--primary-color);
+}
+
+/* 确保语言选择器样式一致 */
+.language-selector {
+  width: 100%;
+}
+
+.language-selector .flex {
+  display: flex;
+  align-items: flex-end; /* 确保底部对齐 */
+  gap: 12px;
+}
+
+.language-selector .flex-1 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.language-selector label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-regular);
+  margin: 0 0 4px 0;
+  display: block;
+}
+
+.language-selector .items-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 2px; /* 微调对齐 */
+}
+
+.language-selector .btn {
+  min-width: 40px;
+  height: 32px; /* 与select高度一致 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  padding: 0;
+}
+
+.language-selector .select {
+  height: 32px; /* 确保统一高度 */
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+/* 状态显示居中对齐 */
+.language-selector .mt-2.text-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.language-selector .mt-2.text-center span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 确保翻译结果样式一致 */
+.translation-result {
+  background: var(--bg-page);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 12px;
+  position: relative;
+}
+
+.translation-result .result-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin: 0;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.translation-result .result-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-lighter);
+}
+
+/* 确保翻译输入样式一致 */
+.translation-input {
+  position: relative;
+}
+
+.translation-input .input-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.translation-input .char-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 确保翻译历史样式一致 */
+.translation-history {
+  overflow-y: auto;
+}
+
+.history-item {
+  background: var(--bg-color);
+  border: 1px solid var(--border-lighter);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.history-item:hover {
+  border-color: var(--primary-color);
+  background: rgba(64, 158, 255, 0.02);
+}
+
+.history-item:last-child {
+  margin-bottom: 0;
+}
+
+.history-item .item-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.history-item .item-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 确保覆盖层样式一致（用于网页翻译） */
+.translation-overlay {
+  position: fixed;
+  z-index: 10000;
+  background: var(--bg-color);
+  border: 1px solid var(--border-base);
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  max-width: 320px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+}

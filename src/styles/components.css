@@ -1,0 +1,553 @@
+/* 基础组件样式库 - Element Plus 风格 */
+
+/* ========== 按钮组件 ========== */
+.btn-group {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.btn-group .btn {
+  border-radius: 0;
+  margin-left: -1px;
+}
+
+.btn-group .btn:first-child {
+  border-top-left-radius: var(--border-radius-base);
+  border-bottom-left-radius: var(--border-radius-base);
+  margin-left: 0;
+}
+
+.btn-group .btn:last-child {
+  border-top-right-radius: var(--border-radius-base);
+  border-bottom-right-radius: var(--border-radius-base);
+}
+
+.btn--text {
+  background: transparent;
+  border-color: transparent;
+  color: var(--primary-color);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.btn--text:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn--outline {
+  background: transparent;
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn--outline:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn--round {
+  border-radius: var(--border-radius-round);
+}
+
+.btn--circle {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ========== 输入框组件 ========== */
+.input-group {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.input-group .input {
+  flex: 1;
+  border-radius: 0;
+}
+
+.input-group .input:first-child {
+  border-top-left-radius: var(--border-radius-base);
+  border-bottom-left-radius: var(--border-radius-base);
+}
+
+.input-group .input:last-child {
+  border-top-right-radius: var(--border-radius-base);
+  border-bottom-right-radius: var(--border-radius-base);
+}
+
+.input-group-prepend,
+.input-group-append {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--bg-page);
+  border: 1px solid var(--border-base);
+  color: var(--text-regular);
+  font-size: var(--font-size-base);
+  white-space: nowrap;
+}
+
+.input-group-prepend {
+  border-right: 0;
+  border-top-left-radius: var(--border-radius-base);
+  border-bottom-left-radius: var(--border-radius-base);
+}
+
+.input-group-append {
+  border-left: 0;
+  border-top-right-radius: var(--border-radius-base);
+  border-bottom-right-radius: var(--border-radius-base);
+}
+
+.input--large {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-medium);
+}
+
+.input--small {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-small);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+}
+
+/* ========== 选择器组件 ========== */
+.select {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.select-input {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right var(--spacing-sm) center;
+  background-repeat: no-repeat;
+  background-size: 16px 12px;
+  padding-right: 40px;
+}
+
+.select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-base);
+  border-radius: var(--border-radius-base);
+  box-shadow: var(--shadow-light);
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.select-option {
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.select-option:hover {
+  background-color: var(--bg-page);
+}
+
+.select-option.selected {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* ========== 标签组件 ========== */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--bg-page);
+  border: 1px solid var(--border-base);
+  border-radius: var(--border-radius-base);
+  font-size: var(--font-size-small);
+  color: var(--text-regular);
+  white-space: nowrap;
+}
+
+.tag--primary {
+  background-color: rgba(64, 158, 255, 0.1);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.tag--success {
+  background-color: rgba(103, 194, 58, 0.1);
+  border-color: var(--success-color);
+  color: var(--success-color);
+}
+
+.tag--warning {
+  background-color: rgba(230, 162, 60, 0.1);
+  border-color: var(--warning-color);
+  color: var(--warning-color);
+}
+
+.tag--error {
+  background-color: rgba(245, 108, 108, 0.1);
+  border-color: var(--error-color);
+  color: var(--error-color);
+}
+
+.tag-close {
+  margin-left: var(--spacing-xs);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.tag-close:hover {
+  opacity: 1;
+}
+
+/* ========== 加载指示器 ========== */
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-base);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading--small {
+  width: 16px;
+  height: 16px;
+  border-width: 1.5px;
+}
+
+.loading--large {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== 进度条组件 ========== */
+.progress {
+  width: 100%;
+  height: 8px;
+  background-color: var(--bg-page);
+  border-radius: var(--border-radius-base);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: var(--border-radius-base);
+  transition: width 0.3s ease;
+}
+
+.progress--success .progress-bar {
+  background-color: var(--success-color);
+}
+
+.progress--warning .progress-bar {
+  background-color: var(--warning-color);
+}
+
+.progress--error .progress-bar {
+  background-color: var(--error-color);
+}
+
+/* ========== 消息提示组件 ========== */
+.message {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius-base);
+  margin-bottom: var(--spacing-md);
+  border-left: 4px solid;
+}
+
+.message--info {
+  background-color: rgba(64, 158, 255, 0.1);
+  border-left-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.message--success {
+  background-color: rgba(103, 194, 58, 0.1);
+  border-left-color: var(--success-color);
+  color: var(--success-color);
+}
+
+.message--warning {
+  background-color: rgba(230, 162, 60, 0.1);
+  border-left-color: var(--warning-color);
+  color: var(--warning-color);
+}
+
+.message--error {
+  background-color: rgba(245, 108, 108, 0.1);
+  border-left-color: var(--error-color);
+  color: var(--error-color);
+}
+
+.message-icon {
+  margin-right: var(--spacing-sm);
+  font-size: var(--font-size-medium);
+}
+
+.message-close {
+  margin-left: auto;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.message-close:hover {
+  opacity: 1;
+}
+
+/* ========== 工具提示组件 ========== */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--text-primary);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-base);
+  font-size: var(--font-size-small);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+  z-index: 1000;
+  margin-bottom: 8px;
+}
+
+.tooltip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--text-primary);
+}
+
+.tooltip:hover .tooltip-content {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ========== 分割线组件 ========== */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-lighter);
+  margin: var(--spacing-lg) 0;
+}
+
+.divider--vertical {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  background-color: var(--border-lighter);
+  margin: 0 var(--spacing-sm);
+  vertical-align: middle;
+}
+
+/* ========== 徽章组件 ========== */
+.badge {
+  position: relative;
+  display: inline-block;
+}
+
+.badge-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background-color: var(--error-color);
+  border-radius: 50%;
+  transform: translate(50%, -50%);
+}
+
+.badge-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  background-color: var(--error-color);
+  color: white;
+  font-size: var(--font-size-extra-small);
+  line-height: 16px;
+  text-align: center;
+  border-radius: 8px;
+  padding: 0 4px;
+  transform: translate(50%, -50%);
+}
+
+/* ========== 开关组件 ========== */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+}
+
+.switch-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border-base);
+  transition: 0.3s;
+  border-radius: 22px;
+}
+
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.switch-input:checked + .switch-slider {
+  background-color: var(--primary-color);
+}
+
+.switch-input:checked + .switch-slider:before {
+  transform: translateX(22px);
+}
+
+/* ========== 复选框组件 ========== */
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkbox-mark {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border-base);
+  border-radius: var(--border-radius-small);
+  margin-right: var(--spacing-sm);
+  transition: all 0.3s;
+}
+
+.checkbox-input:checked + .checkbox-mark {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.checkbox-mark::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.checkbox-input:checked + .checkbox-mark::after {
+  opacity: 1;
+}
+
+/* ========== 单选框组件 ========== */
+.radio {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.radio-input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.radio-mark {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border-base);
+  border-radius: 50%;
+  margin-right: var(--spacing-sm);
+  transition: all 0.3s;
+}
+
+.radio-input:checked + .radio-mark {
+  border-color: var(--primary-color);
+}
+
+.radio-mark::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.3s;
+}
+
+.radio-input:checked + .radio-mark::after {
+  transform: translate(-50%, -50%) scale(1);
+}

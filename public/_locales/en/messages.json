@@ -1,0 +1,226 @@
+{
+  "extensionName": {
+    "message": "Chrome AI Translator",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Smart translation extension using Chrome's built-in AI Translator API, supporting offline translation, streaming processing, and webpage text selection translation",
+    "description": "Extension description"
+  },
+  "actionTitle": {
+    "message": "AI Translator",
+    "description": "Extension icon hover tooltip"
+  },
+  "contextMenuTranslate": {
+    "message": "Translate selected text",
+    "description": "Context menu translate option"
+  },
+  "sourceLanguage": {
+    "message": "Source Language",
+    "description": "Source language label"
+  },
+  "targetLanguage": {
+    "message": "Target Language",
+    "description": "Target language label"
+  },
+  "autoDetect": {
+    "message": "Auto Detect",
+    "description": "Auto detect language option"
+  },
+  "translateButton": {
+    "message": "Translate",
+    "description": "Translate button text"
+  },
+  "translating": {
+    "message": "Translating...",
+    "description": "Translation in progress status"
+  },
+  "copyResult": {
+    "message": "Copy Result",
+    "description": "Copy translation result button"
+  },
+  "copied": {
+    "message": "Copied",
+    "description": "Copy success notification"
+  },
+  "translationHistory": {
+    "message": "Translation History",
+    "description": "Translation history title"
+  },
+  "clearHistory": {
+    "message": "Clear History",
+    "description": "Clear history button"
+  },
+  "noHistory": {
+    "message": "No translation history",
+    "description": "No history records message"
+  },
+  "confirmClearHistory": {
+    "message": "Are you sure you want to clear all translation history?",
+    "description": "Clear history confirmation dialog"
+  },
+  "cancel": {
+    "message": "Cancel",
+    "description": "Cancel button"
+  },
+  "confirm": {
+    "message": "Confirm",
+    "description": "Confirm button"
+  },
+  "settings": {
+    "message": "Settings",
+    "description": "Settings title"
+  },
+  "theme": {
+    "message": "Theme",
+    "description": "Theme setting"
+  },
+  "lightTheme": {
+    "message": "Light",
+    "description": "Light theme"
+  },
+  "darkTheme": {
+    "message": "Dark",
+    "description": "Dark theme"
+  },
+  "autoTheme": {
+    "message": "Follow System",
+    "description": "Auto theme"
+  },
+  "enableOverlay": {
+    "message": "Enable webpage translation overlay",
+    "description": "Overlay setting"
+  },
+  "enableStreaming": {
+    "message": "Enable streaming translation",
+    "description": "Streaming translation setting"
+  },
+  "streamingThreshold": {
+    "message": "Streaming threshold (characters)",
+    "description": "Streaming threshold setting"
+  },
+  "historyLimit": {
+    "message": "History limit",
+    "description": "History record limit setting"
+  },
+  "errorTitle": {
+    "message": "Translation Error",
+    "description": "Error title"
+  },
+  "errorLanguageNotSupported": {
+    "message": "Unsupported language pair",
+    "description": "Language not supported error"
+  },
+  "errorModelNotAvailable": {
+    "message": "Translation model not available, please try again later",
+    "description": "Model not available error"
+  },
+  "errorStorageInsufficient": {
+    "message": "Insufficient storage space to download translation model",
+    "description": "Storage insufficient error"
+  },
+  "errorApiNotSupported": {
+    "message": "Current browser version does not support AI translation. Please upgrade to Chrome 138 or higher",
+    "description": "API not supported error"
+  },
+  "errorGeneral": {
+    "message": "Translation failed, please try again",
+    "description": "General error"
+  },
+  "retry": {
+    "message": "Retry",
+    "description": "Retry button"
+  },
+  "upgradeChrome": {
+    "message": "Upgrade Chrome",
+    "description": "Upgrade Chrome button"
+  },
+  "downloadModel": {
+    "message": "Download Model",
+    "description": "Download model button"
+  },
+  "downloadingModel": {
+    "message": "Downloading translation model...",
+    "description": "Model downloading status"
+  },
+  "modelDownloadComplete": {
+    "message": "Model download complete",
+    "description": "Model download complete notification"
+  },
+  "modelDownloadFailed": {
+    "message": "Model download failed",
+    "description": "Model download failed notification"
+  },
+  "alternativeLanguages": {
+    "message": "Suggested alternative language pairs:",
+    "description": "Alternative language suggestion"
+  },
+  "inputPlaceholder": {
+    "message": "Enter text to translate...",
+    "description": "Input placeholder"
+  },
+  "characterCount": {
+    "message": "$count$ characters",
+    "description": "Character count",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "150"
+      }
+    }
+  },
+  "streamingProgress": {
+    "message": "Translation progress: $progress$%",
+    "description": "Streaming translation progress",
+    "placeholders": {
+      "progress": {
+        "content": "$1",
+        "example": "75"
+      }
+    }
+  },
+  "languageNames": {
+    "message": "Language name mapping",
+    "description": "Language name localization"
+  },
+  "lang_zh": {
+    "message": "Chinese",
+    "description": "Chinese language name"
+  },
+  "lang_en": {
+    "message": "English",
+    "description": "English language name"
+  },
+  "lang_ja": {
+    "message": "Japanese",
+    "description": "Japanese language name"
+  },
+  "lang_ko": {
+    "message": "Korean",
+    "description": "Korean language name"
+  },
+  "lang_fr": {
+    "message": "French",
+    "description": "French language name"
+  },
+  "lang_de": {
+    "message": "German",
+    "description": "German language name"
+  },
+  "lang_es": {
+    "message": "Spanish",
+    "description": "Spanish language name"
+  },
+  "lang_ru": {
+    "message": "Russian",
+    "description": "Russian language name"
+  },
+  "lang_it": {
+    "message": "Italian",
+    "description": "Italian language name"
+  },
+  "lang_pt": {
+    "message": "Portuguese",
+    "description": "Portuguese language name"
+  }
+}

@@ -1,0 +1,161 @@
+/* 动画效果系统 - 简化版，专注防抖动 */
+
+/* ========== 基础动画变量 ========== */
+:root {
+  --animation-duration-fast: 0.1s;
+  --animation-duration-base: 0.15s;
+  --animation-duration-slow: 0.2s;
+  --animation-timing-function: ease-out;
+}
+
+/* ========== 必要的关键帧动画 ========== */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* ========== 组件基础样式 - 无动画版 ========== */
+.btn {
+  transition: background-color var(--animation-duration-fast) var(--animation-timing-function),
+              border-color var(--animation-duration-fast) var(--animation-timing-function);
+  /* 防抖动优化 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.input {
+  transition: border-color var(--animation-duration-fast) var(--animation-timing-function);
+  /* 防止iOS缩放 */
+  font-size: 16px;
+}
+
+.textarea {
+  font-size: 16px; /* 防止iOS自动缩放 */
+}
+
+.loading {
+  animation: spin 1s linear infinite;
+  will-change: transform;
+}
+
+.progress-bar {
+  transition: width var(--animation-duration-base) var(--animation-timing-function);
+}
+
+/* ========== 防抖动核心优化 ========== */
+.translator-app {
+  /* 防抖动基础优化 */
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  /* 初始状态 */
+  opacity: 0;
+}
+
+.translator-app.app-ready {
+  opacity: 1;
+  transition: opacity var(--animation-duration-base) var(--animation-timing-function);
+}
+
+/* 防止初始渲染闪烁 */
+.translator-app .section {
+  opacity: 0;
+}
+
+.translator-app.app-ready .section {
+  opacity: 1;
+  transition: opacity var(--animation-duration-fast) var(--animation-timing-function);
+}
+
+/* ========== 流式翻译指示器 ========== */
+.streaming-text::after {
+  content: '|';
+  animation: blink 1s infinite;
+  color: var(--primary-color);
+}
+
+.streaming-progress::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(64, 158, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* ========== 性能优化 ========== */
+.app-content {
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-overlay,
+.settings-overlay {
+  isolation: isolate;
+}
+
+.message,
+.history-item {
+  contain: layout style paint;
+}
+
+/* ========== 减少动画偏好设置 ========== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .loading {
+    animation: none !important;
+  }
+  
+  .streaming-text::after {
+    animation: none !important;
+  }
+  
+  .streaming-progress::before {
+    animation: none !important;
+  }
+}
+
+/* ========== 移动端优化 ========== */
+@media (max-width: 480px) {
+  .input,
+  .textarea {
+    font-size: 16px; /* 防止iOS自动缩放 */
+  }
+}

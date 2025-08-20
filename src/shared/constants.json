@@ -1,0 +1,102 @@
+{
+  "TRANSLATOR_CONFIG": {
+    "MIN_CHROME_VERSION": 138,
+    "STREAMING_THRESHOLD": 100,
+    "MAX_TRANSLATOR_CACHE": 10,
+    "TRANSLATION_TIMEOUT": 30000,
+    "STREAMING_TIMEOUT": 45000,
+    "MAX_RETRY_COUNT": 3,
+    "CHUNK_PROCESSING_DELAY": 1,
+    "SIMULATED_STREAMING_DELAY": 50,
+    "STREAMING_CHUNK_SIZE": 10
+  },
+  "SUPPORTED_LANGUAGES": [
+    { "code": "auto", "name": "自动检测" },
+    { "code": "zh", "name": "中文" },
+    { "code": "en", "name": "英语" },
+    { "code": "ja", "name": "日语" }
+  ],
+  "MESSAGE_TYPES": {
+    "TRANSLATE_TEXT": "TRANSLATE_TEXT",
+    "GET_SETTINGS": "GET_SETTINGS",
+    "UPDATE_SETTINGS": "UPDATE_SETTINGS",
+    "GET_HISTORY": "GET_HISTORY",
+    "ADD_HISTORY": "ADD_HISTORY",
+    "CLEAR_HISTORY": "CLEAR_HISTORY"
+  },
+  "TRANSLATION_STATUS": {
+    "IDLE": "idle",
+    "TRANSLATING": "translating",
+    "STREAMING": "streaming",
+    "STREAMING_CHUNK": "streaming_chunk",
+    "STREAMING_COMPLETE": "streaming_complete",
+    "FALLBACK_TO_REGULAR": "fallback_to_regular",
+    "SUCCESS": "success",
+    "ERROR": "error"
+  },
+  "STORAGE_KEYS": {
+    "LANGUAGE_PREFERENCES": "languagePreferences",
+    "TRANSLATION_HISTORY": "translationHistory",
+    "EXTENSION_SETTINGS": "extensionSettings"
+  },
+  "STORAGE_LIMITS": {
+    "SYNC_QUOTA_BYTES": 102400,
+    "LOCAL_QUOTA_BYTES": 5242880,
+    "MAX_ITEMS_PER_KEY": 8192,
+    "MAX_WRITE_OPERATIONS_PER_HOUR": 1800,
+    "MAX_WRITE_OPERATIONS_PER_MINUTE": 120,
+    "MAX_HISTORY_ITEMS": 1000,
+    "MAX_PREFERRED_LANGUAGES": 20,
+    "MAX_TRANSLATION_TEXT_LENGTH": 5000
+  },
+  "DEFAULT_SETTINGS": {
+    "theme": "auto",
+    "showOverlay": true,
+    "overlayPosition": "auto",
+    "enableStreaming": true,
+    "streamingThreshold": 100,
+    "historyLimit": 100
+  },
+  "DEFAULT_LANGUAGE_PREFERENCES": {
+    "sourceLanguage": "en",
+    "targetLanguage": "zh",
+    "autoDetectSource": false,
+    "preferredLanguages": ["en", "zh", "ja"]
+  },
+  "DEFAULT_EXTENSION_SETTINGS": {
+    "theme": "auto",
+    "showOverlay": true,
+    "overlayPosition": "auto",
+    "enableStreaming": true,
+    "streamingThreshold": 100,
+    "historyLimit": 100
+  },
+  "ERROR_TYPES": {
+    "LANGUAGE_NOT_SUPPORTED": "LANGUAGE_NOT_SUPPORTED",
+    "MODEL_NOT_AVAILABLE": "MODEL_NOT_AVAILABLE",
+    "STORAGE_INSUFFICIENT": "STORAGE_INSUFFICIENT",
+    "API_NOT_SUPPORTED": "API_NOT_SUPPORTED",
+    "NETWORK_ERROR": "NETWORK_ERROR",
+    "PERMISSION_ERROR": "PERMISSION_ERROR",
+    "TRANSLATION_TIMEOUT": "TRANSLATION_TIMEOUT",
+    "STREAMING_TIMEOUT": "STREAMING_TIMEOUT",
+    "STREAMING_EXECUTION_ERROR": "STREAMING_EXECUTION_ERROR",
+    "CHUNK_PROCESSING_ERROR": "CHUNK_PROCESSING_ERROR",
+    "UNKNOWN_ERROR": "UNKNOWN_ERROR"
+  },
+  "AVAILABILITY_STATUS": {
+    "AVAILABLE": "available",
+    "DOWNLOADABLE": "downloadable",
+    "DOWNLOADING": "downloading",
+    "NOT_AVAILABLE": "not-available"
+  },
+  "DEFAULT_LANGUAGES": {
+    "SOURCE": "en",
+    "TARGET": "zh"
+  },
+  "POPULAR_LANGUAGE_PAIRS": [
+    { "source": "en", "target": "zh", "name": "英语 → 中文" },
+    { "source": "zh", "target": "en", "name": "中文 → 英语" },
+    { "source": "ja", "target": "zh", "name": "日语 → 中文" }
+  ]
+}

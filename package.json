@@ -1,0 +1,39 @@
+{
+  "name": "chrome-ai-translator",
+  "version": "1.13.0",
+  "description": "Chrome AI翻译扩展 - 使用Chrome内置Translator API的浏览器扩展",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:extension": "cross-env BUILD_TARGET=extension vite build --mode production",
+    "build:extension:dev": "cross-env BUILD_TARGET=extension vite build --mode development",
+    "build:complete": "node scripts/build-extension.js",
+    "optimize": "node scripts/optimize-resources.js",
+    "check-resources": "node scripts/optimize-resources.js",
+    "analyze": "npm run build:extension && node scripts/analyze-bundle.js",
+    "validate": "node scripts/validate-build.js",
+    "validate:extension": "node scripts/validate-extension-build.js",
+    "build:full": "npm run optimize && npm run build:extension && npm run validate && npm run validate:extension && npm run analyze",
+    "clean": "node -e \"import('fs').then(fs => fs.rmSync('dist', {recursive: true, force: true}))\"",
+    "prebuild:extension": "npm run clean"
+  },
+  "keywords": [
+    "chrome-extension",
+    "translator",
+    "ai",
+    "vue3"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-json": "^6.1.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "cross-env": "^7.0.3",
+    "vite": "^5.4.19"
+  },
+  "dependencies": {
+    "vue": "^3.5.18"
+  }
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chrome AI 翻译器 - Web测试</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f2f3f5; /* 使用与CSS变量一致的背景色 */
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+      }
+
+      .app-container {
+        margin-top: 50px;
+        width: 100%;
+        max-width: 420px;
+      }
+
+      .demo-note {
+        background: #e7f3ff;
+        border: 1px solid #b3d8ff;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 20px;
+        color: #0066cc;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .demo-note h2 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .demo-note p {
+        margin: 0 0 4px 0;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .demo-note p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* 确保测试环境标识 */
+      .web-test-container {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="demo-note">
+        <h2>Chrome AI 翻译器</h2>
+        <p>这是Web端测试页面，用于开发和调试UI组件</p>
+        <p>需要Chrome 138+版本才能使用Translator API</p>
+        <p>端口: 3000 | UI与扩展popup完全对齐</p>
+      </div>
+
+      <div id="app" class="web-test-container"></div>
+    </div>
+
+    <script type="module" src="/src/test/main.js"></script>
+  </body>
+</html>

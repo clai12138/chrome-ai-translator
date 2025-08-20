@@ -1,0 +1,286 @@
+/* Chrome AI 翻译器 - 简约样式系统 */
+@import './shared-config.css';
+
+/* CSS 变量定义 - 简约朴素风格 */
+:root {
+  /* 基础色彩 */
+  --primary-color: #409eff;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --error-color: #f56c6c;
+  
+  /* 文本色彩 */
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --text-placeholder: #c0c4cc;
+  
+  /* 边框色彩 */
+  --border-base: #dcdfe6;
+  --border-light: #e4e7ed;
+  
+  /* 背景色彩 */
+  --bg-color: #ffffff;
+  --bg-page: #f2f3f5;
+  
+  /* 基础设置 */
+  --border-radius: 4px;
+  --font-size: 14px;
+  --spacing: 8px;
+  --transition: all 0.2s ease;
+}
+
+/* 基础重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 扩展弹窗容器 - 固定420px宽度，100%高度 */
+.extension-popup {
+  width: 420px;
+  height: 100%;
+  background: var(--bg-color);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: var(--font-size);
+}
+
+/* Web测试环境特殊样式 */
+.web-test-container .extension-popup {
+  margin: 0 auto;
+}
+
+/* 主体内容 - 使用flex布局 */
+.extension-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+/* 内容区块 - 统一的section样式 */
+.section {
+  opacity: 1;
+  transition: opacity var(--transition);
+}
+
+/* 应用初始化时的防抖动 - 移动到.app中处理 */
+
+/* 按钮样式 */
+.btn {
+  padding: calc(var(--spacing)) calc(var(--spacing) * 2);
+  border: 1px solid var(--border-base);
+  border-radius: var(--border-radius);
+  background: var(--bg-color);
+  color: var(--text-primary);
+  font-size: var(--font-size);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.btn--primary {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.btn--primary:hover {
+  background: #337ecc;
+  border-color: #337ecc;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 输入框样式 */
+.input {
+  padding: calc(var(--spacing)) calc(var(--spacing) * 1.5);
+  border: 1px solid var(--border-base);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size);
+  color: var(--text-primary);
+  background: var(--bg-color);
+  transition: var(--transition);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.textarea {
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* 选择框样式 */
+.select {
+  padding: calc(var(--spacing)) calc(var(--spacing) * 1.5);
+  border: 1px solid var(--border-base);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size);
+  color: var(--text-primary);
+  background: var(--bg-color);
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* 卡片样式 */
+.card {
+  background: var(--bg-color);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+/* 文本样式 */
+.text-primary { color: var(--text-primary); }
+.text-regular { color: var(--text-regular); }
+.text-secondary { color: var(--text-secondary); }
+
+/* 布局工具类 */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: calc(var(--spacing)); }
+.gap-3 { gap: calc(var(--spacing) * 1.5); }
+.gap-4 { gap: calc(var(--spacing) * 2); }
+
+/* 间距工具类 */
+.mb-2 { margin-bottom: calc(var(--spacing)); }
+.mb-3 { margin-bottom: calc(var(--spacing) * 1.5); }
+.mb-4 { margin-bottom: calc(var(--spacing) * 2); }
+.mt-2 { margin-top: calc(var(--spacing)); }
+
+/* 状态样式 */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.error {
+  color: var(--error-color);
+  border-color: var(--error-color);
+}
+
+.success {
+  color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+/* 语言选择器 */
+.language-selector {
+  display: flex;
+  gap: 12px;
+}
+
+.language-selector .flex-1 {
+  flex: 1;
+}
+
+.language-selector label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+/* 翻译历史 */
+.history-item {
+  cursor: pointer;
+  transition: var(--transition);
+  margin-bottom: calc(var(--spacing));
+}
+
+.history-item:hover {
+  border-color: var(--primary-color);
+}
+
+.history-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* 流式翻译指示器 */
+.streaming-indicator {
+  font-size: 12px;
+  color: var(--primary-color);
+}
+
+/* 网页覆盖层 */
+.translation-overlay {
+  position: fixed;
+  z-index: 10000;
+  background: var(--bg-color);
+  border: 1px solid var(--border-base);
+  border-radius: var(--border-radius);
+  padding: 12px;
+  max-width: 300px;
+  font-family: inherit;
+  font-size: var(--font-size);
+}
+
+/* 工具类 */
+.w-full { width: 100%; }
+.flex-1 { flex: 1; }
+.text-center { text-align: center; }
+
+/* 简化的动画 */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+/* 翻译文本样式 */
+.translated-text {
+  color: #d650dc !important;
+  font-size: inherit !important;
+  background: none !important;
+  margin-left: 4px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: inline;
+}
+
+/* 全文翻译的译文样式 - 使用特定颜色 */
+.translation-append {
+  color: #d650dc !important;
+  font-size: inherit !important;
+  background: none !important;
+  margin-left: 4px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: inline;
+}
+
+/* 深色模式支持（预留） */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #1f1f1f;
+    --bg-page: #2d2d2d;
+    --text-primary: #ffffff;
+    --text-regular: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --border-base: #404040;
+    --border-light: #505050;
+  }
+}

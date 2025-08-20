@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chrome AI翻译扩展</title>
+    <meta name="description" content="使用Chrome内置AI的智能翻译扩展" />
+
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="./main.js" as="script" />
+    <link rel="preload" href="../styles/index.css" as="style" />
+
+    <!-- 内联关键CSS样式 -->
+    <style>
+      /* 初始加载样式 */
+      body {
+        margin: 0;
+        padding: 0;
+        width: 420px;
+        min-height: 500px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #ffffff;
+        color: #303133;
+        overflow-x: hidden;
+      }
+
+      /* 加载指示器 */
+      .loading-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 500px;
+        flex-direction: column;
+      }
+
+      .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #e4e7ed;
+        border-top: 3px solid #409eff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      .loading-text {
+        margin-top: 16px;
+        color: #606266;
+        font-size: 14px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* 隐藏加载器当应用准备就绪 */
+      .app-ready .loading-container {
+        display: none;
+      }
+
+      /* 应用容器 */
+      #app {
+        /* 防抖动优化 */
+        backface-visibility: hidden;
+        transform: translateZ(0);
+        width: 100%;
+        min-height: 500px;
+      }
+
+      /* 错误状态样式 */
+      .error-container {
+        padding: 20px;
+        text-align: center;
+        color: #f56c6c;
+      }
+
+      .error-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .error-message {
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 16px;
+      }
+
+      .error-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+      }
+
+      .error-button {
+        padding: 8px 16px;
+        border: 1px solid #f56c6c;
+        background: transparent;
+        color: #f56c6c;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.3s;
+      }
+
+      .error-button:hover {
+        background: #f56c6c;
+        color: white;
+      }
+
+      .error-button.primary {
+        background: #f56c6c;
+        color: white;
+      }
+
+      .error-button.primary:hover {
+        background: #f78989;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 加载指示器 -->
+    <div class="loading-container" id="loading">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">正在加载翻译扩展...</div>
+    </div>
+
+    <!-- 应用容器 -->
+    <div id="app"></div>
+
+    <!-- 错误容器 -->
+    <div class="error-container" id="error" style="display: none">
+      <div class="error-title">加载失败</div>
+      <div class="error-message" id="error-message">扩展加载时发生错误，请重试。</div>
+      <div class="error-actions">
+        <button class="error-button primary" onclick="location.reload()">重新加载</button>
+        <button class="error-button" onclick="showDebugInfo()">调试信息</button>
+      </div>
+    </div>
+
+    <script>
+      // 错误处理
+      window.addEventListener('error', (event) => {
+        console.error('应用加载错误:', event.error);
+        showError(`JavaScript错误: ${event.error.message}`);
+      });
+
+      window.addEventListener('unhandledrejection', (event) => {
+        console.error('未处理的Promise拒绝:', event.reason);
+        showError(`Promise错误: ${event.reason}`);
+      });
+
+      // 显示错误
+      function showError(message) {
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const errorMessage = document.getElementById('error-message');
+
+        loading.style.display = 'none';
+        error.style.display = 'block';
+        errorMessage.textContent = message;
+      }
+
+      // 显示调试信息
+      function showDebugInfo() {
+        const debugInfo = {
+          userAgent: navigator.userAgent,
+          chromeVersion: navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] || 'Unknown',
+          extensionId: chrome?.runtime?.id || 'Unknown',
+          timestamp: new Date().toISOString(),
+          url: location.href,
+          errors: window.errorLog || [],
+        };
+
+        console.log('调试信息:', debugInfo);
+        alert('调试信息已输出到控制台，请按F12查看。');
+      }
+
+      // 应用就绪处理
+      function onAppReady() {
+        document.body.classList.add('app-ready');
+
+        // 隐藏加载指示器
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.style.display = 'none';
+        }
+
+        console.log('✅ 翻译扩展加载完成');
+      }
+
+      // 超时处理
+      setTimeout(() => {
+        if (!document.body.classList.contains('app-ready')) {
+          showError('应用加载超时，请检查网络连接或重新加载。');
+        }
+      }, 10000); // 10秒超时
+
+      // 暴露全局函数供Vue应用调用
+      window.onAppReady = onAppReady;
+    </script>
+
+    <!-- 主应用脚本 -->
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
