@@ -29,7 +29,7 @@ jobs:
         run: npm run build:complete
 
       - name: Read version from package.json
-        run: echo "VERSION=$(node -p 'require('./package.json').version')" >> $GITHUB_ENV
+        run: echo "VERSION=$(node -p "require('./package.json').version')" >> $GITHUB_ENV
 
       - name: Zip extension-build
         run: |
