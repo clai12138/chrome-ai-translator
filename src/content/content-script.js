@@ -1,12 +1,315 @@
-// Content Script - 处理网页文本选择和翻译覆盖层
-// 需求: 1.1, 1.2, 1.3 - 网页文本选择翻译功能
+/* Content Script - 处理网页文本选择和翻译覆盖层 */
+/* 需求: 1.1, 1.2, 1.3 - 网页文本选择翻译功能 */
+
+// 内联可视区域翻译观察器（基于 IntersectionObserver + MutationObserver）
+// 说明：不向 window 暴露任何全局对象
+class VisibleTranslationObserver {
+  constructor(options = {}) {
+    this.config = {
+      selector:
+        'p, li, h1, h2, h3, h4, h5, h6, blockquote, figcaption, td, th, article, section, div',
+      threshold: options.threshold ?? 0.1,
+      rootMargin: options.rootMargin ?? '200px 0px',
+      minLen: options.minLen ?? 8,
+      maxLen: options.maxLen ?? 1000,
+      concurrency: options.concurrency ?? 2,
+    };
+
+    this.translate = options.translate || (async () => '');
+    this.apply = options.apply || (() => {});
+
+    this._io = null;
+    this._mo = null;
+    this._queue = [];
+    this._running = 0;
+    this._stopped = false;
+
+    this.flags = {
+      observed: 'data-i18n-io-observed',
+      translating: 'data-i18n-io-translating',
+      translated: 'data-i18n-io-translated',
+    };
+
+    this._onIntersect = this._onIntersect.bind(this);
+    this._onMutations = this._onMutations.bind(this);
+
+    // 分帧/空闲分批调度配置与作业队列
+    this._jobs = [];
+    this._scheduled = false;
+    this._maxPerSlice = options.maxPerSlice ?? 200; // 每批最多处理元素数
+    this._timeBudgetMs = options.timeBudgetMs ?? 6; // 每帧时间预算(ms)
+  }
+
+  start() {
+    if (this._stopped) this._stopped = false;
+
+    this._io = new IntersectionObserver(this._onIntersect, {
+      root: null,
+      rootMargin: this.config.rootMargin,
+      threshold: this.config.threshold,
+    });
+
+    // 初始扫描改为分帧/空闲分批执行
+    this._enqueueRoot(document.body);
+
+    this._mo = new MutationObserver(this._onMutations);
+    this._mo.observe(document.documentElement || document.body, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  stop() {
+    this._stopped = true;
+
+    if (this._io) {
+      try { this._io.disconnect(); } catch {}
+      this._io = null;
+    }
+
+    if (this._mo) {
+      try { this._mo.disconnect(); } catch {}
+      this._mo = null;
+    }
+
+    this._queue.length = 0;
+    this._running = 0;
+  }
+
+  // 将待扫描根节点入队，按帧/空闲时间批处理
+  _enqueueRoot(root) {
+    if (!root || !(root instanceof Element) || this._stopped) return;
+    // 避免重复入队（使用不可枚举属性做一次性标记）
+    if (root.__i18nScanQueued) return;
+    try {
+      Object.defineProperty(root, '__i18nScanQueued', { value: true, configurable: true });
+    } catch {}
+    const job = this._prepareJob(root);
+    if (job.nodes.length === 0) return;
+    this._jobs.push(job);
+    this._schedule();
+  }
+
+  _prepareJob(root) {
+    const nodes = [];
+    if (root instanceof Element) nodes.push(root);
+    try {
+      const list = root.querySelectorAll(this.config.selector);
+      for (let i = 0; i < list.length; i++) nodes.push(list[i]);
+    } catch {}
+    return { nodes, idx: 0 };
+  }
+
+  _schedule() {
+    if (this._scheduled || this._stopped) return;
+    this._scheduled = true;
+    const runner = (deadline) => {
+      this._scheduled = false;
+      const budget = deadline && typeof deadline.timeRemaining === 'function'
+        ? Math.max(1, deadline.timeRemaining())
+        : this._timeBudgetMs;
+      this._drain(budget);
+      if (this._jobs.length > 0) {
+        this._schedule();
+      }
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(runner, { timeout: 50 });
+    } else {
+      requestAnimationFrame(() => runner({ timeRemaining: () => this._timeBudgetMs }));
+    }
+  }
+
+  _drain(/* budgetMs */) {
+    const start = performance.now();
+    const maxPerSlice = this._maxPerSlice;
+    while (this._jobs.length > 0) {
+      const job = this._jobs[0];
+      let processed = 0;
+      while (job.idx < job.nodes.length) {
+        const el = job.nodes[job.idx++];
+        // 先执行廉价预筛，再走较贵的 _isCandidate
+        if (this._preCheck(el) && this._isCandidate(el)) {
+          this._observe(el);
+        }
+        processed++;
+        if (processed >= maxPerSlice) break;
+        if (performance.now() - start >= this._timeBudgetMs) break;
+      }
+      if (job.idx >= job.nodes.length) {
+        this._jobs.shift();
+      } else {
+        // 留待下一帧/空闲时继续
+        break;
+      }
+      if (performance.now() - start >= this._timeBudgetMs) break;
+    }
+  }
+
+  // 廉价预筛：避免在大量节点上频繁触发 innerText/getComputedStyle
+  _preCheck(el) {
+    if (!(el instanceof Element)) return false;
+    const tag = el.tagName;
+    // 黑名单快速排除
+    if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT' || tag === 'IFRAME' ||
+        tag === 'SVG' || tag === 'CANVAS' || tag === 'IMG' || tag === 'VIDEO' ||
+        tag === 'AUDIO' || tag === 'META' || tag === 'TITLE' || tag === 'HEAD' ||
+        tag === 'LINK') {
+      return false;
+    }
+    // 已处理状态快速排除
+    if (el.getAttribute(this.flags.observed) === '1' ||
+        el.getAttribute(this.flags.translating) === '1' ||
+        el.getAttribute(this.flags.translated) === '1') {
+      return false;
+    }
+    // 可见性快速判断（避免昂贵的样式计算）
+    if ((el.offsetWidth | 0) === 0 && (el.offsetHeight | 0) === 0) {
+      return false;
+    }
+    // 文本长度粗筛（textContent 比 innerText 便宜）
+    const len = (el.textContent || '').trim().length;
+    if (len < this.config.minLen || len > this.config.maxLen) return false;
+    return true;
+  }
+
+  _scanAndObserve(root) {
+    if (!root || !(root instanceof Element)) return;
+
+    if (this._isCandidate(root)) {
+      this._observe(root);
+    }
+
+    const list = root.querySelectorAll(this.config.selector);
+    list.forEach((el) => {
+      if (this._isCandidate(el)) {
+        this._observe(el);
+      }
+    });
+  }
+
+  _observe(el) {
+    el.setAttribute(this.flags.observed, '1');
+    if (this._io) {
+      try { this._io.observe(el); } catch {}
+    }
+  }
+
+  _isCandidate(el) {
+    if (!(el instanceof Element)) return false;
+
+    const blacklist = new Set([
+      'SCRIPT','STYLE','NOSCRIPT','IFRAME','SVG','CANVAS','IMG','VIDEO','AUDIO','META','TITLE','HEAD','LINK',
+    ]);
+    if (blacklist.has(el.tagName)) return false;
+
+    if (
+      el.getAttribute(this.flags.observed) === '1' ||
+      el.getAttribute(this.flags.translating) === '1' ||
+      el.getAttribute(this.flags.translated) === '1'
+    ) {
+      return false;
+    }
+
+    const style = el.ownerDocument?.defaultView?.getComputedStyle(el);
+    if (!style || style.visibility === 'hidden' || style.display === 'none') {
+      return false;
+    }
+
+    const text = (el.innerText || '').replace(/\s+/g, ' ').trim();
+    if (text.length < this.config.minLen || text.length > this.config.maxLen) {
+      return false;
+    }
+
+    return true;
+  }
+
+  _onIntersect(entries) {
+    if (this._stopped) return;
+
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const el = entry.target;
+
+      if (
+        el.getAttribute(this.flags.translating) === '1' ||
+        el.getAttribute(this.flags.translated) === '1'
+      ) {
+        continue;
+      }
+
+      const text = (el.innerText || '').replace(/\s+/g, ' ').trim();
+      if (!text || text.length < this.config.minLen || text.length > this.config.maxLen) {
+        continue;
+      }
+
+      el.setAttribute(this.flags.translating, '1');
+
+      this._push(async () => {
+        try {
+          const translated = await this.translate(text);
+          if (this._stopped) return;
+          if (!el.isConnected) return;
+
+          const current = (el.innerText || '').replace(/\s+/g, ' ').trim();
+          if (current !== text) {
+            el.removeAttribute(this.flags.translating);
+            return;
+          }
+
+          if (translated && translated !== text) {
+            this.apply(el, translated);
+            el.setAttribute(this.flags.translated, '1');
+          }
+        } catch {
+          // 保持可重试
+        } finally {
+          el.removeAttribute(this.flags.translating);
+        }
+      });
+    }
+  }
+
+  _onMutations(mutations) {
+    if (this._stopped) return;
+
+    for (const m of mutations) {
+      if (m.type === 'childList') {
+        m.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            this._enqueueRoot(node);
+          }
+        });
+      }
+    }
+  }
+
+  _push(task) {
+    this._queue.push(task);
+    this._pump();
+  }
+
+  _pump() {
+    while (this._running < this.config.concurrency && this._queue.length > 0) {
+      const task = this._queue.shift();
+      this._running++;
+      Promise.resolve()
+        .then(task)
+        .catch(() => {})
+        .finally(() => {
+          this._running--;
+          this._pump();
+        });
+    }
+  }
+}
 
 // 异步加载常量配置
 let CONSTANTS = null;
 
 async function loadConstants() {
   if (CONSTANTS) return CONSTANTS;
-  
+
   try {
     const response = await fetch(chrome.runtime.getURL('assets/constants.json'));
     CONSTANTS = await response.json();
@@ -30,8 +333,6 @@ async function loadConstants() {
   }
 }
 
-console.log('Chrome AI翻译扩展 Content Script 已加载')
-
 /**
  * Content Script 翻译器类
  * 负责处理网页文本选择、翻译覆盖层显示和翻译功能
@@ -43,6 +344,7 @@ class ContentTranslator {
     this.overlayManager = null
     this.languagePreferences = null
     this.isPageTranslated = false // 跟踪页面翻译状态
+    this.visibleObserver = null
     
     this.init()
   }
@@ -55,20 +357,18 @@ class ContentTranslator {
     try {
       // 加载常量配置
       const constants = await loadConstants()
-      
+
       // 设置默认语言偏好
       this.languagePreferences = constants.DEFAULT_LANGUAGE_PREFERENCES
-      
+
       // 加载用户语言偏好
       await this.loadLanguagePreferences(constants)
-      
+
       // 监听文本选择事件
       this.setupEventListeners()
-      
+
       // 监听来自 background script 的消息
       this.setupMessageListeners(constants)
-      
-      console.log('Content Script 初始化完成')
     } catch (error) {
       console.error('Content Script 初始化失败:', error)
     }
@@ -81,19 +381,19 @@ class ContentTranslator {
   setupEventListeners() {
     // 监听鼠标抬起事件（文本选择完成）
     document.addEventListener('mouseup', this.handleTextSelection.bind(this));
-    
+
     // 监听键盘事件（键盘选择文本）
     document.addEventListener('keyup', this.handleKeyboardSelection.bind(this));
-    
+
     // 监听选择变化事件
     document.addEventListener('selectionchange', this.handleSelectionChange.bind(this));
-    
+
     // 监听点击事件（隐藏覆盖层）
     document.addEventListener('click', this.handleDocumentClick.bind(this));
-    
+
     // 监听滚动事件（隐藏覆盖层）
     document.addEventListener('scroll', this.handleDocumentScroll.bind(this));
-    
+
     // 监听窗口大小变化（重新定位覆盖层）
     window.addEventListener('resize', this.handleWindowResize.bind(this));
   }
@@ -108,11 +408,11 @@ class ContentTranslator {
         case constants.MESSAGE_TYPES.TRANSLATE_TEXT:
           this.handleTranslateMessage(message, sendResponse);
           return true; // 保持消息通道开放以进行异步响应
-          
+
         case 'UPDATE_LANGUAGE_PREFERENCES':
           this.handleLanguagePreferencesUpdate(message.preferences);
           break;
-          
+
         case 'HIDE_OVERLAY':
           this.hideOverlay();
           break;
@@ -150,7 +450,7 @@ class ContentTranslator {
         case 'PING':
           sendResponse({ success: true, message: 'Content script is ready' });
           break;
-          
+
         default:
           console.log('未知消息类型:', message.type);
       }
@@ -162,15 +462,14 @@ class ContentTranslator {
    * 需求: 1.1 - 当用户在网页上选择文本时，扩展应在选中文本附近显示翻译弹窗
    */
   handleTextSelection(event) {
-    // 延迟处理，确保选择操作完成
     setTimeout(() => {
       const selection = window.getSelection();
       const selectedText = selection.toString().trim();
-      
+  
       if (selectedText.length > 0 && selectedText.length <= 5000) {
         this.selectedText = selectedText;
         this.selectionRange = selection.getRangeAt(0).cloneRange();
-        
+  
         // 获取选择区域的位置信息
         const rect = selection.getRangeAt(0).getBoundingClientRect();
         const position = {
@@ -179,9 +478,7 @@ class ContentTranslator {
           width: rect.width,
           height: rect.height
         };
-        
-        console.log('检测到文本选择:', selectedText.substring(0, 50) + (selectedText.length > 50 ? '...' : ''));
-        
+  
         // 显示翻译覆盖层
         this.showTranslationOverlay(selectedText, position);
       } else if (selectedText.length === 0) {
@@ -194,7 +491,7 @@ class ContentTranslator {
         console.warn('选择的文本过长，超过5000字符限制');
         this.showErrorMessage('选择的文本过长，请选择较短的文本进行翻译');
       }
-    }, 100);
+    }, 100)
   }
 
   /**
@@ -203,9 +500,9 @@ class ContentTranslator {
    */
   handleKeyboardSelection(event) {
     // 只处理特定的键盘事件
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || 
-        event.key === 'ArrowUp' || event.key === 'ArrowDown' ||
-        event.shiftKey) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' ||
+      event.key === 'ArrowUp' || event.key === 'ArrowDown' ||
+      event.shiftKey) {
       this.handleTextSelection(event)
     }
   }
@@ -234,8 +531,8 @@ class ContentTranslator {
   handleDocumentClick(event) {
     // 检查是否点击了翻译相关元素
     const isTranslationElement = event.target.closest('#chrome-ai-translator-icon') ||
-                                event.target.closest('#chrome-ai-translator-popup');
-    
+      event.target.closest('#chrome-ai-translator-popup');
+
     if (!isTranslationElement) {
       // 只有点击空白处才隐藏覆盖层
       this.hideOverlay();
@@ -291,17 +588,17 @@ class ContentTranslator {
   showTranslationIcon(selectedText, position) {
     // 移除现有图标
     this.hideOverlay();
-    
+
     // 创建翻译图标
     const icon = document.createElement('div');
     icon.id = 'chrome-ai-translator-icon';
     icon.innerHTML = '🌐';
     icon.title = '点击翻译选中文本';
-    
+
     // 计算图标位置，确保在可视区域内
     const iconSize = 32;
     const margin = 10;
-    
+
     // 计算水平位置
     let left = position.x - iconSize / 2;
     if (left < margin) {
@@ -309,7 +606,7 @@ class ContentTranslator {
     } else if (left + iconSize > window.innerWidth - margin) {
       left = window.innerWidth - iconSize - margin;
     }
-    
+
     // 计算垂直位置
     let top = position.y - 40;
     if (top < margin) {
@@ -320,7 +617,7 @@ class ContentTranslator {
         top = Math.max(margin, window.innerHeight - iconSize - margin);
       }
     }
-    
+
     // 设置样式
     Object.assign(icon.style, {
       position: 'fixed',
@@ -342,15 +639,15 @@ class ContentTranslator {
       opacity: '0',
       transform: 'scale(0.8)'
     })
-    
+
     document.body.appendChild(icon);
-    
+
     // 显示动画
     setTimeout(() => {
       icon.style.opacity = '1';
       icon.style.transform = 'scale(1)';
     }, 10);
-    
+
     // 点击事件
     icon.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -364,28 +661,15 @@ class ContentTranslator {
       };
       this.showTranslationPopup(selectedText, iconPosition);
     });
-    
+
     // 鼠标悬停效果
     icon.addEventListener('mouseenter', () => {
       icon.style.transform = 'scale(1.1)';
     });
-    
+
     icon.addEventListener('mouseleave', () => {
       icon.style.transform = 'scale(1)';
     });
-    
-    // 图标在5秒后自动隐藏，但点击后会显示弹窗
-    setTimeout(() => {
-      if (icon.parentNode && !document.getElementById('chrome-ai-translator-popup')) {
-        icon.style.opacity = '0';
-        icon.style.transform = 'scale(0.8)';
-        setTimeout(() => {
-          if (icon.parentNode) {
-            icon.remove();
-          }
-        }, 200);
-      }
-    }, 5000);
   }
 
   /**
@@ -395,9 +679,6 @@ class ContentTranslator {
     // 隐藏图标
     this.hideOverlay();
 
-    // 延迟弹出：先完成翻译，再创建弹窗显示结果
-    console.log('开始翻译选中文本:', selectedText);
-
     try {
       // 通过 service worker 进行翻译
       const result = await this.translateText(
@@ -406,15 +687,13 @@ class ContentTranslator {
         this.languagePreferences.targetLanguage
       );
 
-      console.log('翻译结果:', result);
-
       // 翻译完成后再创建弹窗并填充结果
       const popup = this.createTranslationPopup(selectedText, position, false);
       this.updateTranslationPopup(popup, { success: true, result: result.result });
     } catch (error) {
       console.error('翻译请求失败:', error);
       const popup = this.createTranslationPopup(selectedText, position, false);
-      
+
       // 根据错误类型提供不同的错误信息
       let errorMessage = '翻译失败';
       if (error.message.includes('LanguageDetector')) {
@@ -424,7 +703,7 @@ class ContentTranslator {
       } else {
         errorMessage = `翻译失败: ${error.message}`;
       }
-      
+
       this.updateTranslationPopup(popup, { success: false, error: errorMessage });
     }
   }
@@ -447,12 +726,12 @@ class ContentTranslator {
         <div class="translation-error" style="display: none; color: #f56c6c;"></div>
       </div>
     `
-    
+
     // 计算弹窗位置，确保在可视区域内
     const popupWidth = 320
     const popupHeight = 150 // 估算高度
     const margin = 10
-    
+
     // 计算水平位置
     let left = position.x - popupWidth / 2
     if (left < margin) {
@@ -460,7 +739,7 @@ class ContentTranslator {
     } else if (left + popupWidth > window.innerWidth - margin) {
       left = window.innerWidth - popupWidth - margin
     }
-    
+
     // 计算垂直位置
     let top = position.y - popupHeight - 10
     if (top < margin) {
@@ -471,7 +750,7 @@ class ContentTranslator {
         top = Math.max(margin, window.innerHeight - popupHeight - margin)
       }
     }
-    
+
     // 设置样式
     Object.assign(popup.style, {
       position: 'fixed',
@@ -490,7 +769,7 @@ class ContentTranslator {
       transform: 'scale(0.9)',
       transition: 'all 0.2s ease'
     })
-    
+
     // 添加内部样式（如果还没有）
     if (!document.getElementById('chrome-ai-translator-popup-style')) {
       const style = document.createElement('style')
@@ -566,18 +845,18 @@ class ContentTranslator {
       `
       document.head.appendChild(style)
     }
-    
+
     document.body.appendChild(popup)
-    
+
     // 设置事件监听器
     this.setupPopupEventListeners(popup)
-    
+
     // 显示动画
     setTimeout(() => {
       popup.style.opacity = '1'
       popup.style.transform = 'scale(1)'
     }, 10)
-    
+
     return popup
   }
 
@@ -586,16 +865,16 @@ class ContentTranslator {
    */
   updateTranslationPopup(popup, result) {
     if (!popup || !popup.parentNode) return
-    
+
     const loadingElement = popup.querySelector('.translation-loading')
     const translatedElement = popup.querySelector('.translated-text')
     const errorElement = popup.querySelector('.translation-error')
-    
+
     // 隐藏加载状态
     if (loadingElement) {
       loadingElement.style.display = 'none'
     }
-    
+
     if (result && result.success && result.result) {
       // 显示翻译结果
       if (translatedElement) {
@@ -633,26 +912,26 @@ class ContentTranslator {
         }, 200)
       }
     }
-    
+
     closeBtn.addEventListener('click', (e) => {
       e.stopPropagation()
       closePopup()
     })
-    
+
     // 阻止弹窗内部点击事件冒泡
     popup.addEventListener('click', (e) => {
       e.stopPropagation()
     })
-    
+
     // 阻止弹窗内部的鼠标事件冒泡，防止意外关闭
     popup.addEventListener('mousedown', (e) => {
       e.stopPropagation()
     })
-    
+
     popup.addEventListener('mouseup', (e) => {
       e.stopPropagation()
     })
-    
+
     // 点击弹窗外部关闭 - 延迟添加，避免立即触发
     setTimeout(() => {
       const handleOutsideClick = (event) => {
@@ -683,7 +962,7 @@ class ContentTranslator {
     if (icon) {
       icon.remove()
     }
-    
+
     const popup = document.getElementById('chrome-ai-translator-popup')
     if (popup) {
       popup.remove()
@@ -713,7 +992,7 @@ class ContentTranslator {
    */
   handleLanguagePreferencesUpdate(preferences) {
     this.languagePreferences = { ...this.languagePreferences, ...preferences }
-    
+
     // 更新覆盖层管理器的语言偏好
     if (this.overlayManager) {
       this.overlayManager.updateLanguagePreferences(preferences)
@@ -727,22 +1006,22 @@ class ContentTranslator {
     try {
       const selection = window.getSelection()
       const selectedText = selection.toString().trim()
-      
+
       if (selectedText.length > 0) {
         // 保存选中文本和位置信息
         this.selectedText = selectedText
         if (selection.rangeCount > 0) {
           this.selectionRange = selection.getRangeAt(0).cloneRange()
         }
-        
-        sendResponse({ 
-          success: true, 
+
+        sendResponse({
+          success: true,
           text: selectedText,
           hasSelection: true
         })
       } else {
-        sendResponse({ 
-          success: true, 
+        sendResponse({
+          success: true,
           text: '',
           hasSelection: false
         })
@@ -768,7 +1047,7 @@ class ContentTranslator {
           reject(new Error(chrome.runtime.lastError.message))
           return
         }
-        
+
         if (response && response.success) {
           resolve({
             result: response.result,
@@ -802,7 +1081,7 @@ class ContentTranslator {
     const errorElement = document.createElement('div')
     errorElement.className = 'chrome-ai-translator-error-toast'
     errorElement.textContent = message
-    
+
     // 应用错误提示样式
     Object.assign(errorElement.style, {
       position: 'fixed',
@@ -819,15 +1098,15 @@ class ContentTranslator {
       transform: 'translateX(100%)',
       transition: 'all 0.3s ease'
     })
-    
+
     document.body.appendChild(errorElement)
-    
+
     // 显示动画
     setTimeout(() => {
       errorElement.style.opacity = '1'
       errorElement.style.transform = 'translateX(0)'
     }, 10)
-    
+
     // 自动隐藏
     setTimeout(() => {
       errorElement.style.opacity = '0'
@@ -854,47 +1133,45 @@ class ContentTranslator {
    */
   async handleTranslatePage(message = {}) {
     console.log('开始翻译整个页面', message)
-    
+
     try {
       // 使用传入的语言设置或默认设置
       let sourceLanguage = message.sourceLanguage || this.languagePreferences.sourceLanguage
       const targetLanguage = message.targetLanguage || this.languagePreferences.targetLanguage
-      
+
       console.log(`翻译语言对: ${sourceLanguage} → ${targetLanguage}`)
-      
+
       // 获取可视区域内的文本节点
       const visibleTextNodes = this.getVisibleTextNodes()
-      
-      console.log(`找到 ${visibleTextNodes.length} 个可视区域内的文本节点`)
-      
+
       if (visibleTextNodes.length === 0) {
         this.showErrorMessage('可视区域内没有找到可翻译的文本内容')
         return { success: false, error: '没有找到可翻译的文本' }
       }
-      
+
       // 显示翻译进度提示
       this.showTranslationProgress(`正在翻译可视区域内容 (${sourceLanguage} → ${targetLanguage})...`)
-      
+
       // 提取文本内容
       const texts = visibleTextNodes.map(node => node.textContent.trim()).filter(text => text.length > 0 && text.length <= 500)
-      
+
       if (texts.length === 0) {
         this.hideTranslationProgress()
         this.showErrorMessage('没有找到符合翻译条件的文本内容')
         return { success: false, error: '没有找到符合翻译条件的文本' }
       }
-      
+
       let translatedCount = 0
-      
+
       // 逐个翻译文本片段，提供更好的错误处理
       for (let i = 0; i < visibleTextNodes.length; i++) {
         const node = visibleTextNodes[i]
         const originalText = node.textContent.trim()
-        
+
         if (originalText.length > 0 && originalText.length <= 500) {
           try {
             this.updateTranslationProgress(`正在翻译第 ${i + 1}/${visibleTextNodes.length} 个文本片段...`)
-            
+
             // 通过 service worker 进行翻译
             try {
               const result = await this.translateText(originalText, sourceLanguage, targetLanguage)
@@ -913,7 +1190,7 @@ class ContentTranslator {
             // 翻译失败，显示失败提示
             this.appendTranslationToNode(node, '', true)
           }
-          
+
           // 添加延迟避免请求过于频繁
           if (i < visibleTextNodes.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 50))
@@ -922,21 +1199,21 @@ class ContentTranslator {
       }
 
       this.hideTranslationProgress()
-      
+
       if (translatedCount > 0) {
         this.showSuccessMessage(`可视区域翻译完成，共翻译了 ${translatedCount} 个文本片段`)
         
-        // 设置滚动监听器，当新内容进入可视区域时自动翻译
-        this.setupScrollTranslation(sourceLanguage, targetLanguage)
+        // 启动可视区域翻译观察器，自动翻译新进入视口的内容
+        this.startVisibleObserver(sourceLanguage, targetLanguage)
       } else {
         this.showErrorMessage('没有成功翻译任何文本，请检查网络连接或稍后重试')
       }
-      
+
       // 更新翻译状态
       this.isPageTranslated = translatedCount > 0
-      
+
       return { success: translatedCount > 0, translatedCount }
-      
+
     } catch (error) {
       console.error('页面翻译失败:', error)
       this.hideTranslationProgress()
@@ -949,28 +1226,32 @@ class ContentTranslator {
    * 处理取消翻译页面消息
    */
   handleCancelTranslatePage() {
-    console.log('取消页面翻译')
-    
     // 移除所有翻译标记
     const translationElements = document.querySelectorAll('.translation-append')
     translationElements.forEach(element => {
       element.remove()
     })
-    
+
     // 移除滚动翻译监听器
     if (this.scrollTranslationHandler) {
       window.removeEventListener('scroll', this.scrollTranslationHandler)
       clearTimeout(this.scrollTranslationTimeout)
       this.scrollTranslationHandler = null
-      console.log('已移除滚动翻译监听器')
+    }
+
+    // 停止可视区域翻译观察器
+    if (this.visibleObserver) {
+      this.visibleObserver.stop()
+      this.visibleObserver = null
+      console.log('已停止可视区域翻译观察器')
     }
     
     // 隐藏进度提示
     this.hideTranslationProgress()
-    
+
     // 更新翻译状态
     this.isPageTranslated = false
-    
+
     this.showSuccessMessage('已取消页面翻译')
   }
 
@@ -979,7 +1260,7 @@ class ContentTranslator {
    */
   handleShowQuickTranslation(message) {
     const { originalText, translatedText, position } = message
-    
+
     // 创建快速翻译弹窗
     this.showQuickTranslationPopup(originalText, translatedText, position)
   }
@@ -1007,47 +1288,46 @@ class ContentTranslator {
           // 过滤掉空白文本和脚本/样式标签中的文本
           const parent = node.parentElement
           if (!parent) return NodeFilter.FILTER_REJECT
-          
+
           const tagName = parent.tagName.toLowerCase()
           if (['script', 'style', 'noscript', 'meta', 'title', 'head'].includes(tagName)) {
             return NodeFilter.FILTER_REJECT
           }
-          
+
           // 跳过扩展自身的元素
-          if (parent.closest('#chrome-ai-translator-icon') || 
-              parent.closest('#chrome-ai-translator-popup') ||
-              parent.closest('#translation-progress') ||
-              parent.closest('.translation-append') ||
-              parent.classList.contains('translation-append')) {
+          if (parent.closest('#chrome-ai-translator-icon') ||
+            parent.closest('#chrome-ai-translator-popup') ||
+            parent.closest('#translation-progress') ||
+            parent.closest('.translation-append') ||
+            parent.classList.contains('translation-append')) {
             return NodeFilter.FILTER_REJECT
           }
-          
+
           const text = node.textContent.trim()
           if (text.length === 0 || text.length > 500) {
             return NodeFilter.FILTER_REJECT
           }
-          
+
           // 检查文本是否有意义（不是纯数字、符号等）
           if (!/[a-zA-Z\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff]/.test(text)) {
             return NodeFilter.FILTER_REJECT
           }
-          
+
           // 检查是否已经有翻译
           if (parent.querySelector('.translation-append')) {
             return NodeFilter.FILTER_REJECT
           }
-          
+
           return NodeFilter.FILTER_ACCEPT
         }
       }
     )
-    
+
     let node
     while (node = walker.nextNode()) {
       textNodes.push(node)
     }
-    
-    console.log(`找到 ${textNodes.length} 个可翻译的文本节点`)
+
     return textNodes
   }
 
@@ -1057,13 +1337,13 @@ class ContentTranslator {
   getVisibleTextNodes() {
     const allTextNodes = this.getPageTextNodes()
     const visibleNodes = []
-    
+
     for (const node of allTextNodes) {
       if (this.isElementInViewport(node.parentElement)) {
         visibleNodes.push(node)
       }
     }
-    
+
     console.log(`在 ${allTextNodes.length} 个文本节点中，找到 ${visibleNodes.length} 个可视区域内的节点`)
     return visibleNodes
   }
@@ -1073,11 +1353,11 @@ class ContentTranslator {
    */
   isElementInViewport(element) {
     if (!element) return false
-    
+
     const rect = element.getBoundingClientRect()
     const windowHeight = window.innerHeight || document.documentElement.clientHeight
     const windowWidth = window.innerWidth || document.documentElement.clientWidth
-    
+
     // 检查元素是否在可视区域内（至少部分可见）
     return (
       rect.bottom > 0 &&
@@ -1090,25 +1370,65 @@ class ContentTranslator {
   }
 
   /**
-   * 设置滚动翻译监听器
+   * 设置滚动翻译监听器（已替换为可视区域观察器）
    */
   setupScrollTranslation(sourceLanguage, targetLanguage) {
-    // 移除现有的滚动监听器
+    // 停用旧滚动监听，转为 IntersectionObserver 策略
     if (this.scrollTranslationHandler) {
       window.removeEventListener('scroll', this.scrollTranslationHandler)
       clearTimeout(this.scrollTranslationTimeout)
+      this.scrollTranslationHandler = null
     }
-    
-    // 防抖处理的滚动翻译
-    this.scrollTranslationHandler = () => {
+    this.startVisibleObserver(sourceLanguage, targetLanguage)
+    console.log('已启用可视区域翻译观察器')
+  }
+
+  startVisibleObserver(sourceLanguage, targetLanguage) {
+    // 清理旧的观察器与滚动监听
+    if (this.visibleObserver) {
+      this.visibleObserver.stop()
+      this.visibleObserver = null
+    }
+    if (this.scrollTranslationHandler) {
+      window.removeEventListener('scroll', this.scrollTranslationHandler)
       clearTimeout(this.scrollTranslationTimeout)
-      this.scrollTranslationTimeout = setTimeout(() => {
-        this.translateNewlyVisibleContent(sourceLanguage, targetLanguage)
-      }, 500) // 滚动停止500ms后执行翻译
+      this.scrollTranslationHandler = null
     }
-    
-    window.addEventListener('scroll', this.scrollTranslationHandler, { passive: true })
-    console.log('已设置滚动翻译监听器')
+    const translate = async (text) => {
+      try {
+        const res = await this.translateText(text, 'auto', targetLanguage)
+        return res?.result || ''
+      } catch (e) {
+        return ''
+      }
+    }
+    const apply = (el, translated) => {
+      if (!translated) return
+      // 避免重复附加
+      const existing = el.querySelector('.translation-append')
+      if (existing) existing.remove()
+      const span = document.createElement('span')
+      span.className = 'translation-append translated-text'
+      span.textContent = ` [${translated}]`
+      el.appendChild(span)
+    }
+    this.visibleObserver = new VisibleTranslationObserver({
+      threshold: 0.1,
+      rootMargin: '200px 0px',
+      minLen: 8,
+      maxLen: 500,
+      concurrency: 2,
+      translate,
+      apply,
+    })
+    this.visibleObserver.start()
+  }
+
+  stopVisibleObserver() {
+    if (this.visibleObserver) {
+      this.visibleObserver.stop()
+      this.visibleObserver = null
+    }
   }
 
   /**
@@ -1116,35 +1436,35 @@ class ContentTranslator {
    */
   async translateNewlyVisibleContent(sourceLanguage, targetLanguage) {
     if (!this.isPageTranslated) return
-    
+
     console.log('检查新进入可视区域的内容...')
-    
+
     // 获取当前可视区域内未翻译的文本节点
     const allTextNodes = this.getPageTextNodes()
     const newlyVisibleNodes = []
-    
+
     for (const node of allTextNodes) {
       const parent = node.parentElement
       if (parent && this.isElementInViewport(parent) && !parent.querySelector('.translation-append')) {
         newlyVisibleNodes.push(node)
       }
     }
-    
+
     if (newlyVisibleNodes.length === 0) {
       console.log('没有发现新的可翻译内容')
       return
     }
-    
+
     console.log(`发现 ${newlyVisibleNodes.length} 个新的可翻译文本节点`)
-    
+
     // 提取文本内容
     const texts = newlyVisibleNodes.map(node => node.textContent.trim()).filter(text => text.length > 0 && text.length <= 500)
-    
+
     if (texts.length === 0) {
       console.log('没有找到符合翻译条件的新内容')
       return
     }
-    
+
     try {
       // 通过 service worker 逐个翻译
       const results = []
@@ -1163,15 +1483,15 @@ class ContentTranslator {
           })
         }
       }
-      
+
       // 将翻译结果应用到页面
       let resultIndex = 0
       let translatedCount = 0
-      
+
       for (let i = 0; i < newlyVisibleNodes.length; i++) {
         const node = newlyVisibleNodes[i]
         const originalText = node.textContent.trim()
-        
+
         if (originalText.length > 0 && originalText.length <= 500) {
           const result = results[resultIndex]
           if (result && result.translated !== result.original) {
@@ -1181,7 +1501,7 @@ class ContentTranslator {
           resultIndex++
         }
       }
-      
+
       if (translatedCount > 0) {
         console.log(`新内容翻译完成，共翻译了 ${translatedCount} 个文本片段`)
       }
@@ -1196,17 +1516,17 @@ class ContentTranslator {
   appendTranslationToNode(textNode, translatedText, isError = false) {
     const parent = textNode.parentElement;
     if (!parent) return;
-    
+
     // 检查是否已经有翻译结果
     const existingTranslation = parent.querySelector('.translation-append');
     if (existingTranslation) {
       existingTranslation.remove();
     }
-    
+
     // 创建翻译元素
     const translationElement = document.createElement('span');
     translationElement.className = 'translation-append translated-text';
-    
+
     if (isError) {
       // 显示翻译失败提示
       translationElement.textContent = ' [翻译失败]';
@@ -1215,7 +1535,7 @@ class ContentTranslator {
     } else {
       translationElement.textContent = ` [${translatedText}]`;
     }
-    
+
     // 在文本节点后插入翻译
     if (textNode.nextSibling) {
       parent.insertBefore(translationElement, textNode.nextSibling);
@@ -1233,7 +1553,7 @@ class ContentTranslator {
     if (existingProgress) {
       existingProgress.remove()
     }
-    
+
     const progressElement = document.createElement('div')
     progressElement.id = 'translation-progress'
     progressElement.innerHTML = `
@@ -1242,7 +1562,7 @@ class ContentTranslator {
         <div class="progress-fill"></div>
       </div>
     `
-    
+
     Object.assign(progressElement.style, {
       position: 'fixed',
       top: '20px',
@@ -1259,7 +1579,7 @@ class ContentTranslator {
       minWidth: '280px',
       textAlign: 'center'
     })
-    
+
     // 添加进度条样式
     const style = document.createElement('style')
     style.id = 'translation-progress-style'
@@ -1288,7 +1608,7 @@ class ContentTranslator {
         50% { opacity: 0.7; }
       }
     `
-    
+
     document.head.appendChild(style)
     document.body.appendChild(progressElement)
   }
@@ -1301,11 +1621,11 @@ class ContentTranslator {
     if (progressElement) {
       const textElement = progressElement.querySelector('.progress-text')
       const fillElement = progressElement.querySelector('.progress-fill')
-      
+
       if (textElement) {
         textElement.textContent = message
       }
-      
+
       if (fillElement && progress !== null) {
         fillElement.style.width = `${Math.min(progress, 100)}%`
       }
@@ -1320,7 +1640,7 @@ class ContentTranslator {
     if (progressElement) {
       progressElement.remove()
     }
-    
+
     const progressStyle = document.getElementById('translation-progress-style')
     if (progressStyle) {
       progressStyle.remove()
@@ -1341,7 +1661,7 @@ class ContentTranslator {
     const toastElement = document.createElement('div')
     toastElement.className = 'chrome-ai-translator-toast'
     toastElement.textContent = message
-    
+
     Object.assign(toastElement.style, {
       position: 'fixed',
       top: '20px',
@@ -1360,15 +1680,15 @@ class ContentTranslator {
       wordWrap: 'break-word',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     })
-    
+
     document.body.appendChild(toastElement)
-    
+
     // 显示动画
     setTimeout(() => {
       toastElement.style.opacity = '1'
       toastElement.style.transform = 'translateX(0)'
     }, 10)
-    
+
     // 自动隐藏
     setTimeout(() => {
       toastElement.style.opacity = '0'
@@ -1387,7 +1707,7 @@ class ContentTranslator {
   destroy() {
     // 隐藏覆盖层
     this.hideOverlay()
-    
+
     // 移除事件监听器
     document.removeEventListener('mouseup', this.handleTextSelection)
     document.removeEventListener('keyup', this.handleKeyboardSelection)
@@ -1395,6 +1715,12 @@ class ContentTranslator {
     document.removeEventListener('click', this.handleDocumentClick)
     document.removeEventListener('scroll', this.handleDocumentScroll)
     window.removeEventListener('resize', this.handleWindowResize)
+
+    // 停止可视区域翻译观察器
+    if (this.visibleObserver) {
+      this.visibleObserver.stop()
+      this.visibleObserver = null
+    }
     
     console.log('Content Script 已销毁')
   }

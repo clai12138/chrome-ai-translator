@@ -1,6 +1,6 @@
 {
   "name": "chrome-ai-translator",
-  "version": "1.13.0",
+  "version": "1.15.0",
   "description": "Chrome AI翻译扩展 - 使用Chrome内置Translator API的浏览器扩展",
   "type": "module",
   "scripts": {

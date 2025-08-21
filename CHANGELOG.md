@@ -1,5 +1,33 @@
 # 更新日志
 
+## [1.15.0] - 2025-08-21
+
+### 性能优化（可视区域翻译链路）
+- 分帧/分批扫描：优先使用 requestIdleCallback，无法使用时回退 requestAnimationFrame；每帧时间预算约 6ms；每批最多处理约 200 个元素
+- 先粗后细预筛：初筛采用 textContent.length 与 offsetWidth/offsetHeight 等廉价检查，严格检查（innerText/getComputedStyle）仅在通过初筛后执行
+- 动态子树入队：初次与 DOM 变更均将子树入队，按帧局部扫描，避免全页一次性 querySelectorAll 导致阻塞
+- 并发与限流：翻译并发默认 2；观察对象按帧逐步消化，避免一次性挂载过多
+- 行为保持：依旧基于 IntersectionObserver 触发翻译；消息协议与结果应用方式不变
+
+### 其他
+- 更新 package.json 版本号至 1.15.0
+
+
+## [1.14.0] - 2025-08-21
+
+### 性能优化
+- 使用 IntersectionObserver 替代滚动事件监听，仅在元素进入可视区域时触发翻译
+- 支持并发队列控制，避免同时大量请求
+- 结合 MutationObserver 自动观察新增节点，进入视区即翻译
+
+### 技术实现
+- 将可视区域翻译观察器内联到 src/content/content-script.js（content-script 禁止 import）
+- 全文翻译完成后启动观察器，取消翻译/页面销毁时停止观察器
+- 与后台保持一致的消息协议：{ type: 'TRANSLATE_TEXT' }
+
+### 其他
+- 更新 package.json 版本号至 1.14.0
+
 ## [1.13.0] - 2024-12-20
 
 ### 配置管理重构

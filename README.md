@@ -9,6 +9,7 @@
 - 🧠 划词自动检测源语言（LanguageDetector），目标语言与面板一致
 - 🔁 源语言与目标语言一致时，直接返回原文，跳过翻译调用
 - 🌐 全文翻译功能，在原文右侧追加译文
+- 👀 可视区域翻译（IntersectionObserver）：仅在元素进入可视区域时触发翻译，结合 MutationObserver 处理新增节点，并发受控，性能更优
 - 🖱️ 右键菜单集成，快速翻译选中文本或整个页面
 - 📝 流式翻译支持，实时显示翻译进度
 - 💾 翻译历史记录管理，支持详情查看
@@ -118,6 +119,14 @@ npm run build:full
 - [x] UI组件开发 (简约风格)
 - [x] 测试环境搭建
 - [x] 构建配置优化
+
+## 性能策略（可视区域翻译）
+- IO + MutationObserver：在元素进入或即将进入视区时才触发翻译，动态节点通过 MutationObserver 入队
+- 分帧/分批：优先 requestIdleCallback，回退 requestAnimationFrame；每帧时间预算约 6ms；每批最多处理约 200 个元素，避免主线程长任务
+- 先粗后细：预筛采用 textContent.length、offsetWidth/offsetHeight 等廉价检查；仅对预筛通过的候选再做 innerText/getComputedStyle 严格检查
+- 局部扫描：初次与 DOM 变更均将“子树根”入队，按帧在局部范围内 querySelectorAll，避免全页一次性扫描
+- 并发与限流：翻译并发默认 2；候选数量大时按帧逐步消化，降低瞬时压力
+- 可调参数：threshold、rootMargin、minLen/maxLen、timeBudgetMs、maxPerSlice 可按站点类型与设备性能微调
 
 ## 许可证
 
